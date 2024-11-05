@@ -10,23 +10,22 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: Get comment text
-        id: get_comment
+      - name: Install dependencies
         run: |
-          echo "##[set-output name=comment;]${{ github.event.comment.body }}"
+          python -m pip install --upgrade pip
 
       - name: Update board with new move
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python scripts/update_board.py "${{ steps.get_comment.outputs.comment }}"
+          python scripts/update_board.py "${{ github.event.comment.body }}"
 
       - name: Commit and push changes
         run: |
