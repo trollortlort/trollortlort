@@ -7,30 +7,47 @@ on:
 jobs:
   update-board:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write  # Explicitly set permissions for repo operations
+      issues: read     # Permission to read issue comments
+    
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 
+        with:
+          fetch-depth: 0  # Fetch all history for proper git operations
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5  # Updated to v5
         with:
           python-version: '3.x'
+          cache: 'pip'   # Enable pip caching for faster installations
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+        continue-on-error: false
 
       - name: Update board with new move
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python scripts/update_board.py "${{ github.event.comment.body }}"
+          if ! python scripts/update_board.py "${{ github.event.comment.body }}"; then
+            echo "Failed to update board"
+            exit 1
+          fi
 
       - name: Commit and push changes
         run: |
+          # Check if there are changes to commit
+          if git diff --quiet board.svg; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add board.svg
-          git commit -m "Update board with new move"
+          git commit -m "Update board with new move from ${{ github.event.comment.user.login }}"
           git push
+        continue-on-error: false
