@@ -17,15 +17,16 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
+      - name: Get comment text
+        id: get_comment
         run: |
-          python -m pip install --upgrade pip
+          echo "##[set-output name=comment;]${{ github.event.comment.body }}"
 
       - name: Update board with new move
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python scripts/update_board.py
+          python scripts/update_board.py "${{ steps.get_comment.outputs.comment }}"
 
       - name: Commit and push changes
         run: |
