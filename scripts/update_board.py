@@ -1,3 +1,5 @@
+import sys
+import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
@@ -36,21 +38,38 @@ def check_for_captures():
     # Placeholder for capture logic; would involve checking liberties of stones
     pass
 
-# Function to update the board based on moves
-def update_board(moves):
-    tree = ET.parse(BOARD_FILE)
-    root = tree.getroot()
+# Function to update the board based on a single move
+def update_board(move):
+    column, row, color = move
+    if is_on_board(column, row) and is_valid_move(column, row, color):
+        tree = ET.parse(BOARD_FILE)
+        root = tree.getroot()
+        
+        x, y = get_coordinates(column, row)
+        add_stone(root, x, y, color)
+        game_board[(column, row)] = color
+        check_for_captures()  # Check for any captured stones
 
-    for move in moves:
-        column, row, color = move
-        if is_on_board(column, row) and is_valid_move(column, row, color):
-            x, y = get_coordinates(column, row)
-            add_stone(root, x, y, color)
-            game_board[(column, row)] = color
-            check_for_captures()  # Remove captured stones if any
+        tree.write(BOARD_FILE)
+        print(f"Move placed: {color} stone at ({column}, {row})")
+    else:
+        print("Move is not valid.")
 
-    tree.write(BOARD_FILE)
-
+# Main entry point when executed
 if __name__ == "__main__":
-    moves = [("C", 5, "black"), ("D", 4, "white")]  # Example moves
-    update_board(moves)
+    # Extract the move from the comment passed by GitHub Action
+    comment_text = sys.argv[1]
+    move_match = re.match(r"move\s+([A-I])([1-9])", comment_text, re.IGNORECASE)
+    
+    if move_match:
+        column, row = move_match.groups()
+        row = int(row)
+        
+        # Determine player color (alternates with each move)
+        last_move_color = 'white' if any(game_board.values()) else 'black'
+        color = 'black' if last_move_color == 'white' else 'white'
+        
+        # Call update_board with the new move
+        update_board((column.upper(), row, color))
+    else:
+        print("No valid move detected in comment.")
